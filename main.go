@@ -22,11 +22,12 @@ func main() {
 	var dir string
 
 	rootCmd := &cobra.Command{
-		Use:          "CBS",
-		Short:        "CBS - 清理哔哩哔哩下载视频文件名中的多余前缀",
-		Version:      fmt.Sprintf("%s (commit %s, built %s)", version, gitCommit, buildTime),
-		SilenceUsage: true,
+		Use:     "CBS",
+		Short:   "CBS - 清理哔哩哔哩下载视频文件名中的多余前缀",
+		Version: fmt.Sprintf("%s (commit %s, built %s)", version, gitCommit, buildTime),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// 进入 RunE 说明参数已解析正确，后续运行时错误不再打印用法
+			cmd.SilenceUsage = true
 			if err := core.LoadKeywords(keywordPath); err != nil {
 				return err
 			}
@@ -34,13 +35,13 @@ func main() {
 			return core.WalkVideoFiles(dir, func(path string) {
 				newPath, err := core.CleanFile(path)
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
+					cmd.PrintErrln(err)
 					return
 				}
 				if newPath != path {
-					fmt.Printf("重命名成功: %s -> %s\n", filepath.Base(path), filepath.Base(newPath))
+					cmd.Printf("重命名成功: %s -> %s\n", filepath.Base(path), filepath.Base(newPath))
 				} else {
-					fmt.Println("无需修改:", filepath.Base(path))
+					cmd.Println("无需修改:", filepath.Base(path))
 				}
 			})
 		},
@@ -51,8 +52,8 @@ func main() {
 	rootCmd.MarkFlagRequired("keyword")
 	rootCmd.MarkFlagRequired("dir")
 
+	// Execute 内部已打印错误信息，这里只需退出码
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
